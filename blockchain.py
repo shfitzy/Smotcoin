@@ -1,5 +1,7 @@
-from functools import reduce
 from collections import OrderedDict
+from functools import reduce
+from json import dumps, loads
+import pickle
 
 from hash_util import hash_string_256, hash_block
 
@@ -18,10 +20,58 @@ owner = 'Shane'
 participants = {owner}
 
 
+def load_data(use_pickle=False):
+    global blockchain
+    global open_transactions
+
+    if use_pickle:
+        with open('blockchain.p', mode='rb') as file:
+            file_content = pickle.loads(file.read())
+            blockchain = file_content['chain']
+            open_transactions = file_content['ot']
+    else:
+        with open('blockchain.txt', mode='r') as file:
+            file_content = file.readlines()
+            blockchain = loads(file_content[0][:-1])
+            updated_blockchain = []
+            for block in blockchain:
+                updated_block = {
+                    'previous_hash': block['previous_hash'],
+                    'index': block['index'],
+                    'proof': block['proof'],
+                    'transactions': [OrderedDict(
+                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]
+                    ) for tx in block['transactions']]
+                }
+                updated_blockchain.append(updated_block)
+            blockchain = updated_blockchain
+            open_transactions = loads(file_content[1])
+            updated_open_transactions = []
+            for transaction in open_transactions:
+                updated_transaction = OrderedDict([('sender', transaction['sender']), ('recipient', transaction['recipient']), ('amount', transaction['amount'])])
+                updated_open_transactions.append(updated_transaction)
+            open_transactions = updated_open_transactions
+
+
+def save_data():
+    with open('blockchain.p', mode='wb') as file:
+        save_data = {
+            'chain': blockchain,
+            'ot': open_transactions
+        }
+        file.write(pickle.dumps(save_data))
+    with open('blockchain.txt', mode='w') as file:
+        file.write(dumps(blockchain))
+        file.write('\n')
+        file.write(dumps(open_transactions))
+
+
+load_data()
+
+
 def valid_proof(transactions, last_hash, proof):
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
     guess_hash = hash_string_256(guess)
-    print(guess_hash)
     return guess_hash[0:DIFFICULTY] == ('0' * DIFFICULTY)
 
 
@@ -65,6 +115,7 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         open_transactions.append(transaction)
         participants.add(sender)
         participants.add(recipient)
+        save_data()
         return True
     else:
         return False
@@ -146,6 +197,7 @@ while waiting_for_input:
     elif user_choice == '2':
         if mine_block():
             open_transactions = []
+            save_data()
     elif user_choice == '3':
         print_blockchain_elements()
     elif user_choice == '4':
