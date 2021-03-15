@@ -6,15 +6,8 @@ import pickle
 from hash_util import hash_string_256, hash_block
 
 MINING_REWARD = 10
-DIFFICULTY = 2
-# Initializing our blockchain list
-genesis_block = {
-    'previous_hash': '',
-    'index': 0,
-    'transactions': [],
-    'proof': 100
-}
-blockchain = [genesis_block]
+DIFFICULTY = 4
+blockchain = []
 open_transactions = []
 owner = 'Shane'
 participants = {owner}
@@ -30,27 +23,40 @@ def load_data(use_pickle=False):
             blockchain = file_content['chain']
             open_transactions = file_content['ot']
     else:
-        with open('blockchain.txt', mode='r') as file:
-            file_content = file.readlines()
-            blockchain = loads(file_content[0][:-1])
-            updated_blockchain = []
-            for block in blockchain:
-                updated_block = {
-                    'previous_hash': block['previous_hash'],
-                    'index': block['index'],
-                    'proof': block['proof'],
-                    'transactions': [OrderedDict(
-                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]
-                    ) for tx in block['transactions']]
-                }
-                updated_blockchain.append(updated_block)
-            blockchain = updated_blockchain
-            open_transactions = loads(file_content[1])
-            updated_open_transactions = []
-            for transaction in open_transactions:
-                updated_transaction = OrderedDict([('sender', transaction['sender']), ('recipient', transaction['recipient']), ('amount', transaction['amount'])])
-                updated_open_transactions.append(updated_transaction)
-            open_transactions = updated_open_transactions
+        try:
+            with open('blockchain.txt', mode='r') as file:
+                file_content = file.readlines()
+                blockchain = loads(file_content[0][:-1])
+                updated_blockchain = []
+                for block in blockchain:
+                    updated_block = {
+                        'previous_hash': block['previous_hash'],
+                        'index': block['index'],
+                        'proof': block['proof'],
+                        'transactions': [OrderedDict(
+                            [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]
+                        ) for tx in block['transactions']]
+                    }
+                    updated_blockchain.append(updated_block)
+                blockchain = updated_blockchain
+                open_transactions = loads(file_content[1])
+                updated_open_transactions = []
+                for transaction in open_transactions:
+                    updated_transaction = OrderedDict(
+                        [('sender', transaction['sender']), ('recipient', transaction['recipient']),
+                         ('amount', transaction['amount'])])
+                    updated_open_transactions.append(updated_transaction)
+                open_transactions = updated_open_transactions
+        except (IOError, IndexError):
+            print('File not found!')
+            genesis_block = {
+                'previous_hash': '',
+                'index': 0,
+                'transactions': [],
+                'proof': 100
+            }
+            blockchain = [genesis_block]
+            open_transactions = []
 
 
 def save_data():
