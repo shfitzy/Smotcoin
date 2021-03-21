@@ -2,15 +2,17 @@ from functools import reduce
 from json import dumps, loads
 import pickle
 
-from hash_util import hash_block
 from block import Block
 from transaction import Transaction
-from verification import Verification
-
-MINING_REWARD = 10
+from utility.hash_util import hash_block
+from utility.verification import Verification
+from wallet import Wallet
 
 
 class Blockchain:
+
+    MINING_REWARD_SENDER = 'MINING REWARD'
+    MINING_REWARD = 10
 
     def __init__(self, hosting_node_id):
         genesis_block = Block(0, '', [], 100, 0)
@@ -48,7 +50,7 @@ class Blockchain:
                     blockchain = loads(file_content[0][:-1])
                     updated_blockchain = []
                     for block in blockchain:
-                        transactions = [Transaction(tx['sender'], tx['recipient'], tx['amount']) for tx in
+                        transactions = [Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount']) for tx in
                                         block['transactions']]
                         updated_block = Block(block['index'], block['previous_hash'], transactions, block['proof'],
                                               block['timestamp'])
@@ -57,7 +59,7 @@ class Blockchain:
                     open_transactions = loads(file_content[1])
                     updated_open_transactions = []
                     for tx in open_transactions:
-                        updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['amount'])
+                        updated_transaction = Transaction(tx['sender'], tx['recipient'], tx['signature'], tx['amount'])
                         updated_open_transactions.append(updated_transaction)
                     self.__open_transactions = updated_open_transactions
             except (IOError, IndexError):
@@ -108,15 +110,19 @@ class Blockchain:
         """ Returns the last value of the current blockchain. """
         return None if not self.__chain else self.__chain[-1]
 
-    def add_transaction(self, recipient, sender, amount=1.0):
+    def add_transaction(self, recipient, sender, signature, amount=1.0):
         """ Append a new value as well as the last blockchain value to the blockchain.
 
         Arguments:
             sender: The sender of the coins.
             recipient: The recipient of the coins.
+            signature: The signature of the payload, constructed via a private key.
             amount: The amount of coins sent with the transaction (default = 1.0).
         """
-        transaction = Transaction(sender, recipient, amount)
+        if self.hosting_node is None:
+            return False
+
+        transaction = Transaction(sender, recipient, signature, amount)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -125,14 +131,24 @@ class Blockchain:
             return False
 
     def mine_block(self):
+        if self.hosting_node is None:
+            return False
+
         hashed_block = hash_block(self.__chain[-1])
         proof = self.proof_of_work()
 
-        reward_transaction = Transaction('MINING REWARD', self.hosting_node, MINING_REWARD)
+        reward_transaction = Transaction(Blockchain.MINING_REWARD_SENDER, self.hosting_node, '', Blockchain.MINING_REWARD)
         copied_transactions = self.__open_transactions[:]
-        copied_transactions.append(reward_transaction)
 
+        for tx in copied_transactions:
+            if not Wallet.verify_transaction(tx):
+                return False
+
+        copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block, copied_transactions, proof)
+
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
+
+        return True

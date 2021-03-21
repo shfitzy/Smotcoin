@@ -137,3 +137,6 @@ assignment*
 # blockchain output
 blockchain.p
 blockchain.txt
+
+# wallet
+wallet.txt
