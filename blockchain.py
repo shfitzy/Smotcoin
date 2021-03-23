@@ -98,6 +98,9 @@ class Blockchain:
 
         :return: The current balance for the participant.
         """
+        if self.hosting_node is None:
+            return None
+
         participant = self.hosting_node
         user_transactions = [[tx.amount * -1 for tx in block.transactions if tx.sender == participant] for block in self.__chain]
         user_transactions.extend(
@@ -132,7 +135,7 @@ class Blockchain:
 
     def mine_block(self):
         if self.hosting_node is None:
-            return False
+            return None
 
         hashed_block = hash_block(self.__chain[-1])
         proof = self.proof_of_work()
@@ -142,7 +145,7 @@ class Blockchain:
 
         for tx in copied_transactions:
             if not Wallet.verify_transaction(tx):
-                return False
+                return None
 
         copied_transactions.append(reward_transaction)
         block = Block(len(self.__chain), hashed_block, copied_transactions, proof)
@@ -151,4 +154,4 @@ class Blockchain:
         self.__open_transactions = []
         self.save_data()
 
-        return True
+        return block

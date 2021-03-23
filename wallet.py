@@ -29,8 +29,10 @@ class Wallet:
             try:
                 keys = f.readlines()
                 self.public_key, self.private_key = keys[0][:-1], keys[1]
+                return True
             except (IOError, IndexError):
                 print('Loading wallet failed...')
+                return False
 
     @staticmethod
     def generate_keys():
