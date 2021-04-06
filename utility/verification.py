@@ -30,7 +30,7 @@ class Verification:
 
     @staticmethod
     def verify_transaction(transaction, get_balance, check_funds=True):
-        return (not check_funds or get_balance() >= transaction.amount) and Wallet.verify_transaction(transaction)
+        return (not check_funds or get_balance(transaction.sender) >= transaction.amount) and Wallet.verify_transaction(transaction)
 
     @classmethod
     def verify_transactions(cls, open_transactions, get_balance):

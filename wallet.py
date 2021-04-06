@@ -7,8 +7,9 @@ import binascii
 
 class Wallet:
 
-    def __init__(self):
+    def __init__(self, node_id):
         self.private_key, self.public_key = None, None
+        self.node_id = node_id
 
     def create_keys(self):
         self.private_key, self.public_key = self.generate_keys()
@@ -16,7 +17,7 @@ class Wallet:
     def save_keys(self):
         if self.public_key is not None and self.private_key is not None:
             try:
-                with open('wallet.txt', mode='w') as f:
+                with open('wallet-{}.txt'.format(self.node_id), mode='w') as f:
                     f.write(self.public_key + "\n" + self.private_key)
                     return True
             except (IOError, IndexError):
@@ -25,14 +26,14 @@ class Wallet:
         return False
 
     def load_keys(self):
-        with open('wallet.txt', mode='r') as f:
-            try:
+        try:
+            with open('wallet-{}.txt'.format(self.node_id), mode='r') as f:
                 keys = f.readlines()
                 self.public_key, self.private_key = keys[0][:-1], keys[1]
                 return True
-            except (IOError, IndexError):
-                print('Loading wallet failed...')
-                return False
+        except (IOError, IndexError):
+            print('Loading wallet failed...')
+            return False
 
     @staticmethod
     def generate_keys():

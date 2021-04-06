@@ -135,8 +135,8 @@ dmypy.json
 assignment*
 
 # blockchain output
-blockchain.p
-blockchain.txt
+blockchain*.p
+blockchain*.txt
 
 # wallet
-wallet.txt
+wallet*.txt
